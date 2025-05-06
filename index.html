@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mimi-Meomeo - Đọc Truyện Tranh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #ffe4e6, #ffb6c1);
+            font-family: 'Roboto', sans-serif;
+        }
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+        }
+        .manga-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        .manga-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .pencil-btn {
+            background-color: #ff6699;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .pencil-btn:hover {
+            background-color: #ff3366;
+        }
+        .preview-img {
+            max-width: 200px;
+            max-height: 300px;
+            object-fit: cover;
+        }
+        .manga-img-preview {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            border: 1px solid #ffccd5;
+            border-radius: 4px;
+        }
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+        #mangaList {
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        #mangaList::-webkit-scrollbar {
+            display: none;
+        }
+        .arrow-btn {
+            background-color: #ff6699;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        .arrow-btn:hover {
+            background-color: #ff3366;
+        }
+        #readerImage {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+        .reader-controls {
+            position: sticky;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #ffccd5;
+            outline: none;
+            border-radius: 4px;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ff6699;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #ff6699;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        nav, footer {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+        }
+        button, a {
+            cursor: pointer;
+        }
+        #mangaImages {
+            padding: 0.75rem;
+            background-color: #fff;
+            border-radius: 4px;
+            border: 1px solid #ffccd5;
+        }
+        .drop-zone {
+            border: 2px dashed #ff6699;
+            padding: 1rem;
+            text-align: center;
+            background-color: #fff;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+        .drop-zone.dragover {
+            background-color: #ffe4e6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Thanh điều hướng -->
+    <nav class="bg-pink-600 text-white p-4 sticky top-0 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Mimi-Meomeo</h1>
+            <div class="flex items-center space-x-4">
+                <button class="hover:text-pink-200" onclick="showScreen('home')">Trang chủ</button>
+                <button class="hover:text-pink-200">Thể loại</button>
+                <button class="hover:text-pink-200">Mới cập nhật</button>
+                <button class="hover:text-pink-200" onclick="showScreen('contact')">Liên hệ</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Nút cây bút cố định góc dưới phải -->
+    <button id="toUploadScreen" class="pencil-btn p-4 rounded-full fixed bottom-4 right-4 shadow-lg">
+        <svg class="w-10 h-10" fill="none" stroke="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+        </svg>
+    </button>
+
+    <!-- Màn hình chính -->
+    <div id="homeScreen" class="screen active">
+        <main class="container mx-auto py-8 flex-grow">
+            <!-- Thanh tìm kiếm -->
+            <div class="mb-6 max-w-xl mx-auto">
+                <input type="text" id="searchInput" class="w-full p-3 border border-pink-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400" placeholder="Tìm kiếm tên truyện...">
+            </div>
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Truyện Tranh Nổi Bật</h2>
+            <div class="relative">
+                <button id="scrollLeft" class="arrow-btn p-2 rounded-full absolute left-0 top-1/2 transform -translate-y-1/2">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <div id="mangaList" class="flex gap-6">
+                    <!-- Truyện sẽ được thêm động từ Local Storage -->
+                </div>
+                <button id="scrollRight" class="arrow-btn p-2 rounded-full absolute right-0 top-1/2 transform -translate-y-1/2">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Màn hình nhập thông tin truyện -->
+    <div id="uploadScreen" class="screen">
+        <main class="container mx-auto py-8 flex-grow">
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Đăng Truyện Mới</h2>
+            <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+                <div class="mb-4">
+                    <label class="block text-pink-700 font-semibold mb-2">Bìa Truyện</label>
+                    <input type="file" id="coverImage" accept="image/*" class="w-full p-2 border border-pink-300 rounded">
+                    <img id="coverPreview" class="preview-img mt-2 hidden" src="#" alt="Bìa truyện">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-pink-700 font-semibold mb-2">Tên Truyện</label>
+                    <input type="text" id="mangaTitle" class="w-full p-2 border border-pink-300 rounded" placeholder="Nhập tên truyện">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-pink-700 font-semibold mb-2">Tác Giả</label>
+                    <input type="text" id="author" class="w-full p-2 border border-pink-300 rounded" placeholder="Ai Đó">
+                </div>
+                <button id="toImageUploadScreen" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Tiếp theo</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Màn hình tải ảnh truyện -->
+    <div id="imageUploadScreen" class="screen">
+        <main class="container mx-auto py-8 flex-grow">
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Tải Ảnh Truyện</h2>
+            <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+                <div class="mb-4">
+                    <label class="block text-pink-700 font-semibold mb-2">Tải Ảnh Truyện (Nhiều ảnh)</label>
+                    <input type="file" id="mangaImages" accept="image/jpeg,image/png" multiple class="w-full p-3 border border-pink-300 rounded bg-white">
+                    <div class="drop-zone" id="dropZone">Kéo và thả ảnh vào đây (JPG, PNG)</div>
+                    <p class="text-sm text-gray-500 mt-2">Chọn nhiều ảnh (JPG, PNG) bằng cách giữ Ctrl/Cmd hoặc kéo thả. Các ảnh sẽ trở thành các trang truyện.</p>
+                    <p id="imageCount" class="text-sm text-pink-700 mt-2 hidden">Đã chọn: 0 ảnh</p>
+                    <div id="imagePreview" class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                </div>
+                <button id="publishBtn" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Đăng</button>
+                <button id="backToUploadScreen" class="w-full mt-2 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Màn hình đọc truyện -->
+    <div id="readerScreen" class="screen">
+        <main class="container mx-auto py-8 flex-grow flex flex-col items-center">
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center" id="readerTitle"></h2>
+            <img id="readerImage" src="" alt="Trang truyện">
+            <div class="reader-controls w-full max-w-2xl mt-4 flex flex-col items-center">
+                <input type="range" id="pageSlider" class="slider" min="0" max="0" value="0">
+                <div class="flex gap-4 mt-4">
+                    <button id="prevPage" class="bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Trang trước</button>
+                    <button id="nextPage" class="bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Trang sau</button>
+                </div>
+                <button id="backToHome" class="mt-4 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại trang chủ</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Màn hình liên hệ -->
+    <div id="contactScreen" class="screen">
+        <main class="container mx-auto py-8 flex-grow">
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Về Mimi-Meomeo</h2>
+            <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+                <p class="text-gray-700 mb-4">Chào mừng bạn đến với <strong>Mimi-Meomeo</strong>, nền tảng đọc và chia sẻ truyện tranh được xây dựng với niềm đam mê mang đến những câu chuyện tuyệt vời cho mọi người. Chúng tôi mong muốn tạo ra một không gian nơi các nghệ sĩ và độc giả có thể kết nối, chia sẻ và thưởng thức những tác phẩm độc đáo.</p>
+                <p class="text-gray-700 mb-4">Cảm ơn bạn đã ủng hộ Mimi-Meomeo! Sự đồng hành của bạn là động lực để chúng tôi không ngừng cải thiện và phát triển.</p>
+                <h3 class="text-xl font-semibold text-pink-700 mb-2">Thông tin liên hệ</h3>
+                <ul class="text-gray-700 space-y-2">
+                    <li><strong>Người sáng lập:</strong> Nguyễn Văn A</li>
+                    <li><strong>Email:</strong> contact@mimi-meomeo.com</li>
+                    <li><strong>Số điện thoại:</strong> (+84) 123 456 789</li>
+                    <li><strong>Địa chỉ:</strong> 123 Đường Truyện Tranh, TP. Hồ Chí Minh, Việt Nam</li>
+                </ul>
+                <button onclick="showScreen('home')" class="mt-6 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại trang chủ</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chân trang -->
+    <footer class="bg-pink-600 text-white p-4">
+        <div class="container mx-auto text-center">
+            <p>© 2025 Mimi-Meomeo. All rights reserved.</p>
+            <p>Liên hệ: support@mimi-meomeo.com</p>
+        </div>
+    </footer>
+
+    <script>
+        // Kiểm tra hỗ trợ multiple
+        if (!('multiple' in document.createElement('input'))) {
+            alert('Trình duyệt của bạn không hỗ trợ chọn nhiều tệp. Vui lòng nâng cấp trình duyệt!');
+        }
+
+        // Quản lý chuyển đổi màn hình
+        const screens = {
+            home: document.getElementById('homeScreen'),
+            upload: document.getElementById('uploadScreen'),
+            imageUpload: document.getElementById('imageUploadScreen'),
+            reader: document.getElementById('readerScreen'),
+            contact: document.getElementById('contactScreen')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(screen => screen.classList.remove('active'));
+            screens[screenName].classList.add('active');
+        }
+
+        // Nút cây bút
+        document.getElementById('toUploadScreen').addEventListener('click', () => {
+            showScreen('upload');
+        });
+
+        // Nút "Tiếp theo"
+        document.getElementById('toImageUploadScreen').addEventListener('click', () => {
+            const title = document.getElementById('mangaTitle').value;
+            if (!title) {
+                alert('Vui lòng nhập tên truyện!');
+                return;
+            }
+            showScreen('imageUpload');
+        });
+
+        // Nút "Quay lại" từ màn hình tải ảnh
+        document.getElementById('backToUploadScreen').addEventListener('click', () => {
+            showScreen('upload');
+        });
+
+        // Xem trước bìa truyện
+        const coverImage = document.getElementById('coverImage');
+        const coverPreview = document.getElementById('coverPreview');
+        coverImage.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                coverPreview.src = URL.createObjectURL(file);
+                coverPreview.classList.remove('hidden');
+            }
+        });
+
+        // Xem trước ảnh truyện
+        const mangaImages = document.getElementById('mangaImages');
+        const imagePreview = document.getElementById('imagePreview');
+        const imageCount = document.getElementById('imageCount');
+        const dropZone = document.getElementById('dropZone');
+
+        function handleFiles(files) {
+            imagePreview.innerHTML = '';
+            const validFiles = Array.from(files).filter(file => ['image/jpeg', 'image/png'].includes(file.type));
+            console.log(`Số ảnh được chọn: ${validFiles.length}`); // Debug: kiểm tra số tệp
+            if (validFiles.length === 0) {
+                imageCount.classList.add('hidden');
+                alert('Vui lòng chọn tệp JPG hoặc PNG!');
+                return;
+            }
+            imageCount.classList.remove('hidden');
+            imageCount.textContent = `Đã chọn: ${validFiles.length} ảnh`;
+            validFiles.forEach(file => {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.className = 'manga-img-preview';
+                imagePreview.appendChild(img);
+            });
+            mangaImages.files = new FileListWrapper(validFiles); // Cập nhật input files
+        }
+
+        // Xử lý chọn tệp
+        mangaImages.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Xử lý kéo thả
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // Tạo FileList từ mảng tệp
+        function FileListWrapper(files) {
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => dataTransfer.items.add(file));
+            return dataTransfer.files;
+        }
+
+        // Local Storage và quản lý danh sách truyện
+        const mangaList = document.getElementById('mangaList');
+        let mangas = JSON.parse(localStorage.getItem('mangas')) || [];
+
+        function addManga(title, author, coverSrc, imageSrcs) {
+            const manga = { id: Date.now(), title, author, coverSrc, imageSrcs };
+            mangas.unshift(manga);
+            localStorage.setItem('mangas', JSON.stringify(mangas));
+            renderManga(manga);
+        }
+
+        function renderManga(manga) {
+            const mangaCard = document.createElement('div');
+            mangaCard.className = 'manga-card bg-white rounded-lg shadow-lg overflow-hidden min-w-[200px]';
+            mangaCard.dataset.id = manga.id;
+            mangaCard.innerHTML = `
+                <img src="${manga.coverSrc}" alt="${manga.title}" class="w-full h-48 object-cover">
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold text-pink-700">${manga.title}</h3>
+                    <p class="text-sm text-gray-600">Tác giả: ${manga.author}</p>
+                    <p class="text-sm text-gray-500 mt-2">Mô tả ngắn...</p>
+                </div>
+            `;
+            mangaList.insertBefore(mangaCard, mangaList.firstChild);
+            mangaCard.addEventListener('click', () => {
+                showReader(manga);
+            });
+        }
+
+        // Tải truyện từ Local Storage khi khởi động
+        mangas.forEach(renderManga);
+
+        // Chuyển đổi ảnh thành Base64
+        async function fileToBase64(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+        }
+                       // Tải chapter
+                       function loadChapter(chapterIndex) {
+            const comic = comics[currentComicIndex];
+            const chapter = comic.chapters[chapterIndex];
+            readerPages.innerHTML = '';
+            chapter.pages.forEach(page => {
+                const img = document.createElement('img');
+                img.src = page;
+                readerPages.appendChild(img);
+            });
+        }
+
+        // Nút "Đăng"
+        document.getElementById('publishBtn').addEventListener('click', async () => {
+            const title = document.getElementById('mangaTitle').value;
+            const author = document.getElementById('author').value || 'Ai Đó';
+            const coverFile = coverImage.files[0];
+            const imageFiles = mangaImages.files;
+            if (!title) {
+                alert('Vui lòng nhập tên truyện!');
+                return;
+            }
+            if (!coverFile) {
+                alert('Vui lòng chọn bìa truyện!');
+                return;
+            }
+            if (imageFiles.length === 0) {
+                alert('Vui lòng chọn ít nhất một ảnh truyện!');
+                return;
+            }
+            try {
+                const coverSrc = await fileToBase64(coverFile);
+                const imageSrcs = await Promise.all(Array.from(imageFiles).map(file => fileToBase64(file)));
+                addManga(title, author, coverSrc, imageSrcs);
+                alert(`Truyện "${title}" (Tác giả: ${author}) đã được đăng với ${imageFiles.length} trang!`);
+                showScreen('home');
+                // Reset form
+                coverImage.value = '';
+                document.getElementById('mangaTitle').value = '';
+                document.getElementById('author').value = '';
+                mangaImages.value = '';
+                coverPreview.classList.add('hidden');
+                imagePreview.innerHTML = '';
+                imageCount.classList.add('hidden');
+            } catch (error) {
+                console.error('Lỗi khi xử lý ảnh:', error);
+                alert('Có lỗi xảy ra khi đăng truyện. Vui lòng thử lại!');
+            }
+        });
+
+
+        // Tìm kiếm truyện với gợi ý
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            const mangaCards = mangaList.querySelectorAll('.manga-card');
+            mangaCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                card.style.display = query && !title.includes(query) ? 'none' : 'block';
+            });
+        });
+
+        // Điều hướng danh sách truyện
+        document.getElementById('scrollLeft').addEventListener('click', () => {
+            mangaList.scrollBy({ left: -200, behavior: 'smooth' });
+        });
+        document.getElementById('scrollRight').addEventListener('click', () => {
+            mangaList.scrollBy({ left: 200, behavior: 'smooth' });
+        });
+
+        // Màn hình đọc truyện
+        let currentManga = null;
+        let currentPage = 0;
+
+        function showReader(manga) {
+            currentManga = manga;
+            currentPage = 0;
+            document.getElementById('readerTitle').textContent = manga.title;
+            document.getElementById('readerImage').src = manga.imageSrcs[0];
+            const slider = document.getElementById('pageSlider');
+            slider.max = manga.imageSrcs.length - 1;
+            slider.value = 0;
+            document.getElementById('prevPage').disabled = true;
+            document.getElementById('nextPage').disabled = manga.imageSrcs.length <= 1;
+            showScreen('reader');
+        }
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                document.getElementById('readerImage').src = currentManga.imageSrcs[currentPage];
+                document.getElementById('pageSlider').value = currentPage;
+                document.getElementById('nextPage').disabled = false;
+                document.getElementById('prevPage').disabled = currentPage === 0;
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < currentManga.imageSrcs.length - 1) {
+                currentPage++;
+                document.getElementById('readerImage').src = currentManga.imageSrcs[currentPage];
+                document.getElementById('pageSlider').value = currentPage;
+                document.getElementById('prevPage').disabled = false;
+                document.getElementById('nextPage').disabled = currentPage === currentManga.imageSrcs.length - 1;
+            }
+        });
+
+        document.getElementById('pageSlider').addEventListener('input', (e) => {
+            currentPage = parseInt(e.target.value);
+            document.getElementById('readerImage').src = currentManga.imageSrcs[currentPage];
+            document.getElementById('prevPage').disabled = currentPage === 0;
+            document.getElementById('nextPage').disabled = currentPage === currentManga.imageSrcs.length - 1;
+        });
+
+        document.getElementById('backToHome').addEventListener('click', () => {
+            showScreen('home');
+        });
+    </script>
+</body>
+</html>
