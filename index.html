@@ -10,6 +10,10 @@
         body {
             background: linear-gradient(135deg, #ffe4e6, #ffb6c1);
             font-family: 'Roboto', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
         }
         h1, h2, h3 {
             font-family: 'Playfair Display', serif;
@@ -23,13 +27,13 @@
             transform: scale(1.05);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
-        .pencil-btn {
+        .book-btn {
             background-color: #ff6699;
             transition: background-color 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
-        .pencil-btn:hover {
+        .book-btn:hover {
             background-color: #ff3366;
         }
         .preview-img {
@@ -39,16 +43,56 @@
         }
         .manga-img-preview {
             max-width: 100%;
-            max-height: 200px;
+            max-height: 150px;
             object-fit: contain;
             border: 1px solid #ffccd5;
             border-radius: 4px;
+            display: block;
         }
         .screen {
             display: none;
+            min-height: 100vh;
+            visibility: hidden;
         }
         .screen.active {
+            display: flex;
+            flex-direction: column;
+            visibility: visible;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
+        .overlay.active {
             display: block;
+        }
+        .full-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            overflow-y: auto;
+        }
+        .full-screen .content {
+            max-width: 500px;
+            width: 100%;
+            margin: auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         #mangaList {
             overflow-x: auto;
@@ -68,41 +112,41 @@
         .arrow-btn:hover {
             background-color: #ff3366;
         }
-        #readerImage {
+        #readerImages {
             max-width: 100%;
-            max-height: 70vh;
             object-fit: contain;
         }
-        .reader-controls {
-            position: sticky;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 1rem;
-            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-        .slider {
-            -webkit-appearance: none;
+        .reader-image {
             width: 100%;
-            height: 8px;
-            background: #ffccd5;
-            outline: none;
+            max-width: 800px;
+            margin: 0 auto;
+            display: block;
+            margin-bottom: 1rem;
+        }
+        .sidebar {
+            width: 300px;
+            background-color: #fff;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: -300px;
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .folder-card {
+            cursor: pointer;
+            padding: 0.5rem;
+            border: 1px solid #ffccd5;
             border-radius: 4px;
+            margin-bottom: 0.5rem;
         }
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #ff6699;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .slider::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            background: #ff6699;
-            border-radius: 50%;
-            cursor: pointer;
+        .folder-card:hover {
+            background-color: #ffe4e6;
         }
         nav, footer {
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -124,32 +168,61 @@
             background-color: #fff;
             border-radius: 4px;
             margin-top: 0.5rem;
+            min-height: 100px;
         }
         .drop-zone.dragover {
             background-color: #ffe4e6;
         }
+        #imagePreview {
+            max-height: 400px;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        #imagePreview::-webkit-scrollbar {
+            display: none;
+        }
+        .pencil-btn {
+            background-color: #ff6699;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .pencil-btn:hover {
+            background-color: #ff3366;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+
     <!-- Thanh điều hướng -->
     <nav class="bg-pink-600 text-white p-4 sticky top-0 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold">Mimi-Meomeo</h1>
             <div class="flex items-center space-x-4">
                 <button class="hover:text-pink-200" onclick="showScreen('home')">Trang chủ</button>
-                <button class="hover:text-pink-200">Thể loại</button>
-                <button class="hover:text-pink-200">Mới cập nhật</button>
+                <button class="hover:text-pink-200" onclick="showScreen('loginRegister')">Đăng nhập/Đăng ký</button>
+                <button class="hover:text-pink-200" id="logoutBtn" style="display: none;">Đăng xuất</button>
                 <button class="hover:text-pink-200" onclick="showScreen('contact')">Liên hệ</button>
             </div>
         </div>
     </nav>
 
-    <!-- Nút cây bút cố định góc dưới phải -->
-    <button id="toUploadScreen" class="pencil-btn p-4 rounded-full fixed bottom-4 right-4 shadow-lg">
+    <!-- Nút sách cố định góc dưới phải -->
+    <button id="toSidebar" class="book-btn p-4 rounded-full fixed bottom-4 right-4 shadow-lg">
         <svg class="w-10 h-10" fill="none" stroke="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
         </svg>
     </button>
+
+    <!-- Sidebar danh sách truyện -->
+    <div id="sidebar" class="sidebar">
+        <h2 class="text-xl font-bold text-pink-800 mb-4">Truyện Của Bạn</h2>
+        <button id="newMangaBtn" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700 mb-4">New</button>
+        <div id="mangaFolders"></div>
+    </div>
 
     <!-- Màn hình chính -->
     <div id="homeScreen" class="screen active">
@@ -195,7 +268,7 @@
                     <label class="block text-pink-700 font-semibold mb-2">Tác Giả</label>
                     <input type="text" id="author" class="w-full p-2 border border-pink-300 rounded" placeholder="Ai Đó">
                 </div>
-                <button id="toImageUploadScreen" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Tiếp theo</button>
+                <button id="toImageUploadScreen" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Tạo</button>
             </div>
         </main>
     </div>
@@ -206,12 +279,20 @@
             <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Tải Ảnh Truyện</h2>
             <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
                 <div class="mb-4">
-                    <label class="block text-pink-700 font-semibold mb-2">Tải Ảnh Truyện (Nhiều ảnh)</label>
-                    <input type="file" id="mangaImages" accept="image/jpeg,image/png" multiple class="w-full p-3 border border-pink-300 rounded bg-white">
-                    <div class="drop-zone" id="dropZone">Kéo và thả ảnh vào đây (JPG, PNG)</div>
-                    <p class="text-sm text-gray-500 mt-2">Chọn nhiều ảnh (JPG, PNG) bằng cách giữ Ctrl/Cmd hoặc kéo thả. Các ảnh sẽ trở thành các trang truyện.</p>
+                    <label class="block text-pink-700 font-semibold mb-2">Tải Ảnh Truyện (Chọn từng ảnh, tối thiểu 2 ảnh)</label>
+                    <input type="file" id="mangaImages" accept="image/jpeg,image/png" class="w-full p-3 border border-pink-300 rounded bg-white">
+                    <div class="drop-zone" id="dropZone">Kéo và thả ảnh vào đây (JPG, PNG, chọn từng ảnh hoặc nhiều ảnh)</div>
+                    <p class="text-sm text-gray-500 mt-2">Chọn từng ảnh hoặc kéo thả nhiều ảnh (JPG, PNG). Phải chọn ít nhất 2 ảnh.</p>
                     <p id="imageCount" class="text-sm text-pink-700 mt-2 hidden">Đã chọn: 0 ảnh</p>
                     <div id="imagePreview" class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-pink-700 font-semibold mb-2">Ghi Chapter</label>
+                    <textarea id="chapterContent" class="w-full p-2 border border-pink-300 rounded" placeholder="Nhập nội dung chapter"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-pink-700 font-semibold mb-2">Tên Chap</label>
+                    <input type="text" id="chapterTitle" class="w-full p-2 border border-pink-300 rounded" placeholder="Nhập tên chapter">
                 </div>
                 <button id="publishBtn" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Đăng</button>
                 <button id="backToUploadScreen" class="w-full mt-2 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại</button>
@@ -223,16 +304,59 @@
     <div id="readerScreen" class="screen">
         <main class="container mx-auto py-8 flex-grow flex flex-col items-center">
             <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center" id="readerTitle"></h2>
-            <img id="readerImage" src="" alt="Trang truyện">
-            <div class="reader-controls w-full max-w-2xl mt-4 flex flex-col items-center">
-                <input type="range" id="pageSlider" class="slider" min="0" max="0" value="0">
-                <div class="flex gap-4 mt-4">
-                    <button id="prevPage" class="bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Trang trước</button>
-                    <button id="nextPage" class="bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Trang sau</button>
-                </div>
-                <button id="backToHome" class="mt-4 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại trang chủ</button>
-            </div>
+            <div id="readerImages" class="flex flex-col items-center"></div>
+            <button id="backToHome" class="mt-4 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại trang chủ</button>
         </main>
+    </div>
+
+    <!-- Màn hình chi tiết truyện (chapter) -->
+    <div id="chapterScreen" class="screen">
+        <main class="container mx-auto py-8 flex-grow flex">
+            <div class="w-1/4 bg-white p-4">
+                <h2 class="text-xl font-bold text-pink-800 mb-4" id="chapterMangaTitle"></h2>
+                <div id="chapterList"></div>
+            </div>
+            <div class="w-3/4 p-4">
+                <div id="chapterContentDisplay"></div>
+                <button id="backToHomeFromChapter" class="mt-4 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại trang chủ</button>
+            </div>
+            <!-- Nút bút ở góc phải -->
+            <button id="toChapterUpload" class="pencil-btn p-4 rounded-full fixed bottom-4 right-4 shadow-lg">
+                <svg class="w-10 h-10" fill="none" stroke="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                </svg>
+            </button>
+        </main>
+    </div>
+
+    <!-- Màn hình đăng nhập/đăng ký -->
+    <div id="loginRegisterScreen" class="screen full-screen">
+        <div class="content">
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Đăng nhập / Đăng ký</h2>
+            <div id="loginForm" class="mb-4">
+                <input type="text" id="loginUsername" class="w-full p-2 border border-pink-300 rounded mb-2" placeholder="Tên người dùng">
+                <input type="password" id="loginPassword" class="w-full p-2 border border-pink-300 rounded mb-2" placeholder="Mật khẩu">
+                <button id="loginBtn" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Đăng nhập</button>
+                <button id="toForgotPassword" class="mt-2 text-pink-600 hover:underline" onclick="showScreen('forgotPasswordScreen')">Quên mật khẩu?</button>
+            </div>
+            <div id="registerForm" class="mb-4" style="display: none;">
+                <input type="text" id="registerUsername" class="w-full p-2 border border-pink-300 rounded mb-2" placeholder="Tên người dùng">
+                <input type="password" id="registerPassword" class="w-full p-2 border border-pink-300 rounded mb-2" placeholder="Mật khẩu">
+                <button id="registerBtn" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Đăng ký</button>
+            </div>
+            <button id="toggleRegister" class="text-pink-600 hover:underline">Chuyển sang Đăng ký</button>
+            <button id="toggleLogin" class="text-pink-600 hover:underline" style="display: none;">Chuyển sang Đăng nhập</button>
+        </div>
+    </div>
+
+    <!-- Màn hình quên mật khẩu -->
+    <div id="forgotPasswordScreen" class="screen full-screen">
+        <div class="content">
+            <h2 class="text-3xl font-bold text-pink-800 mb-6 text-center">Quên Mật Khẩu</h2>
+            <input type="text" id="forgotUsername" class="w-full p-2 border border-pink-300 rounded mb-2" placeholder="Tên người dùng">
+            <button id="resetPasswordBtn" class="w-full bg-pink-600 text-white p-2 rounded hover:bg-pink-700">Gửi yêu cầu đặt lại</button>
+            <button id="backToLogin" class="mt-2 text-pink-600 hover:underline" onclick="showScreen('loginRegisterScreen')">Quay lại Đăng nhập</button>
+        </div>
     </div>
 
     <!-- Màn hình liên hệ -->
@@ -244,10 +368,11 @@
                 <p class="text-gray-700 mb-4">Cảm ơn bạn đã ủng hộ Mimi-Meomeo! Sự đồng hành của bạn là động lực để chúng tôi không ngừng cải thiện và phát triển.</p>
                 <h3 class="text-xl font-semibold text-pink-700 mb-2">Thông tin liên hệ</h3>
                 <ul class="text-gray-700 space-y-2">
-                    <li><strong>Người sáng lập:</strong> Nguyễn Nhật Thiện và Vũ Huyền Thảo My</li>
-                    <li><strong>Email:</strong> contact@mimi-meomeo.com</li>
-                    <li><strong>Số điện thoại:</strong> (+84) 904 299 0879</li>
-                    <li><strong>Địa chỉ:</strong> 123 Đường Truyện Tranh, TP. Hồ Chí Minh, Việt Nam</li>
+                    <li><strong>Người sáng lập:</strong> Nguyễn Nhật Thiện</li>
+                    <li><strong>Người đồng hành:</strong> Vũ Huyền Thảo My</li>
+                    <li><strong>Email:</strong> nhatthien152011@gmail.com</li>
+                    <li><strong>Số điện thoại:</strong> (+84) 904 299 087</li>
+                    <li><strong>Địa chỉ:</strong> 123 Đường Trần Duy Hưng, TP. Hà Nội, Việt Nam</li>
                 </ul>
                 <button onclick="showScreen('home')" class="mt-6 bg-pink-400 text-white p-2 rounded hover:bg-pink-500">Quay lại trang chủ</button>
             </div>
@@ -263,9 +388,10 @@
     </footer>
 
     <script>
-        // Kiểm tra hỗ trợ multiple
-        if (!('multiple' in document.createElement('input'))) {
-            alert('Trình duyệt của bạn không hỗ trợ chọn nhiều tệp. Vui lòng nâng cấp trình duyệt!');
+        // Kiểm tra hỗ trợ kéo thả và đọc tệp
+        if (!('DataTransfer' in window) || !('FileReader' in window)) {
+            alert('Trình duyệt của bạn không hỗ trợ kéo thả hoặc đọc tệp. Vui lòng nâng cấp trình duyệt!');
+            throw new Error('Không hỗ trợ DataTransfer hoặc FileReader');
         }
 
         // Quản lý chuyển đổi màn hình
@@ -274,21 +400,165 @@
             upload: document.getElementById('uploadScreen'),
             imageUpload: document.getElementById('imageUploadScreen'),
             reader: document.getElementById('readerScreen'),
-            contact: document.getElementById('contactScreen')
+            contact: document.getElementById('contactScreen'),
+            chapter: document.getElementById('chapterScreen'),
+            loginRegister: document.getElementById('loginRegisterScreen'),
+            forgotPassword: document.getElementById('forgotPasswordScreen')
         };
+        const overlay = document.getElementById('overlay');
 
         function showScreen(screenName) {
-            Object.values(screens).forEach(screen => screen.classList.remove('active'));
-            screens[screenName].classList.add('active');
+            Object.values(screens).forEach(screen => {
+                screen.classList.remove('active');
+                screen.style.position = '';
+                screen.style.top = '';
+                screen.style.left = '';
+                screen.style.width = '';
+                screen.style.height = '';
+            });
+            overlay.classList.remove('active');
+
+            if (screenName === 'loginRegister' || screenName === 'forgotPassword') {
+                document.body.style.overflow = 'hidden';
+                document.body.style.position = 'fixed';
+                document.body.style.width = '100%';
+                document.body.style.height = '100vh';
+                overlay.classList.add('active');
+                screens[screenName].classList.add('active');
+            } else {
+                document.body.style.overflow = 'auto';
+                document.body.style.position = '';
+                document.body.style.width = '';
+                document.body.style.height = '';
+                screens[screenName].classList.add('active');
+            }
         }
 
-        // Nút cây bút
-        document.getElementById('toUploadScreen').addEventListener('click', () => {
+        // Quản lý người dùng
+        let currentUser = null;
+        const users = JSON.parse(localStorage.getItem('users')) || {};
+
+        function saveUser(username, password) {
+            users[username] = { password, mangas: [] };
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        function login(username, password) {
+            if (users[username] && users[username].password === password) {
+                currentUser = username;
+                document.getElementById('logoutBtn').style.display = 'inline';
+                showScreen('home');
+                renderMangaFolders();
+                return true;
+            }
+            alert('Tên người dùng hoặc mật khẩu không đúng!');
+            return false;
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('logoutBtn').style.display = 'none';
+            mangas = [];
+            renderMangaFolders();
+            showScreen('loginRegister');
+        }
+
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            login(username, password);
+        });
+
+        document.getElementById('registerBtn').addEventListener('click', () => {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            if (username && password) {
+                if (!users[username]) {
+                    saveUser(username, password);
+                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                    document.getElementById('registerForm').style.display = 'none';
+                    document.getElementById('loginForm').style.display = 'block';
+                    document.getElementById('toggleRegister').style.display = 'inline';
+                    document.getElementById('toggleLogin').style.display = 'none';
+                } else {
+                    alert('Tên người dùng đã tồn tại!');
+                }
+            } else {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+            }
+        });
+
+        document.getElementById('toggleRegister').addEventListener('click', () => {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('toggleRegister').style.display = 'none';
+            document.getElementById('toggleLogin').style.display = 'inline';
+        });
+
+        document.getElementById('toggleLogin').addEventListener('click', () => {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('toggleLogin').style.display = 'none';
+            document.getElementById('toggleRegister').style.display = 'inline';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+
+        document.getElementById('resetPasswordBtn').addEventListener('click', () => {
+            const username = document.getElementById('forgotUsername').value;
+            if (users[username]) {
+                alert('Yêu cầu đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra email (chức năng giả lập).');
+                showScreen('loginRegister');
+            } else {
+                alert('Tên người dùng không tồn tại!');
+            }
+        });
+
+        // Sidebar và nút sách
+        const sidebar = document.getElementById('sidebar');
+        const toSidebar = document.getElementById('toSidebar');
+        const mangaFolders = document.getElementById('mangaFolders');
+        const newMangaBtn = document.getElementById('newMangaBtn');
+
+        toSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            if (currentUser) renderMangaFolders();
+        });
+
+        newMangaBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập để tạo truyện!');
+                showScreen('loginRegister');
+                return;
+            }
+            sidebar.classList.remove('active');
             showScreen('upload');
         });
 
-        // Nút "Tiếp theo"
+        function renderMangaFolders() {
+            mangaFolders.innerHTML = '';
+            if (currentUser) {
+                const userMangas = users[currentUser].mangas || [];
+                userMangas.forEach(manga => {
+                    const folder = document.createElement('div');
+                    folder.className = 'folder-card';
+                    folder.innerHTML = `<img src="${manga.coverSrc}" alt="${manga.title}" class="w-16 h-16 object-cover inline-block mr-2"><span>${manga.title}</span>`;
+                    folder.addEventListener('click', () => {
+                        sidebar.classList.remove('active');
+                        showChapterScreen(manga);
+                    });
+                    mangaFolders.appendChild(folder);
+                });
+            }
+        }
+
+        // Nút "Tạo"
         document.getElementById('toImageUploadScreen').addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập để tạo truyện!');
+                showScreen('loginRegister');
+                return;
+            }
             const title = document.getElementById('mangaTitle').value;
             if (!title) {
                 alert('Vui lòng nhập tên truyện!');
@@ -308,43 +578,69 @@
         coverImage.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                console.log('Hiển thị bìa truyện:', file.name);
                 coverPreview.src = URL.createObjectURL(file);
                 coverPreview.classList.remove('hidden');
             }
         });
 
-        // Xem trước ảnh truyện
+        // Xử lý ảnh truyện (hỗ trợ chọn từng ảnh)
         const mangaImages = document.getElementById('mangaImages');
         const imagePreview = document.getElementById('imagePreview');
         const imageCount = document.getElementById('imageCount');
         const dropZone = document.getElementById('dropZone');
+        let selectedFiles = []; // Lưu trữ tất cả tệp đã chọn
 
         function handleFiles(files) {
-            imagePreview.innerHTML = '';
-            const validFiles = Array.from(files).filter(file => ['image/jpeg', 'image/png'].includes(file.type));
-            console.log(`Số ảnh được chọn: ${validFiles.length}`); // Debug: kiểm tra số tệp
-            if (validFiles.length === 0) {
-                imageCount.classList.add('hidden');
+            const newFiles = Array.from(files).filter(file => ['image/jpeg', 'image/png'].includes(file.type));
+            console.log(`Số ảnh mới được chọn: ${newFiles.length}`);
+            console.log(`Danh sách tệp:`, newFiles.map(f => f.name));
+
+            if (newFiles.length === 0) {
                 alert('Vui lòng chọn tệp JPG hoặc PNG!');
                 return;
             }
+
+            selectedFiles.push(...newFiles);
+            console.log(`Tổng số ảnh hiện tại: ${selectedFiles.length}`);
+
             imageCount.classList.remove('hidden');
-            imageCount.textContent = `Đã chọn: ${validFiles.length} ảnh`;
-            validFiles.forEach(file => {
+            imageCount.textContent = `Đã chọn: ${selectedFiles.length} ảnh`;
+
+            imagePreview.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
                 const img = document.createElement('img');
-                img.src = URL.createObjectURL(file);
+                const src = URL.createObjectURL(file);
+                console.log(`Hiển thị ảnh ${index + 1}: ${file.name}, URL: ${src}`);
+                img.src = src;
                 img.className = 'manga-img-preview';
+                img.alt = file.name;
+                img.onerror = () => {
+                    console.error(`Lỗi hiển thị ảnh ${file.name}`);
+                    alert(`Không thể hiển thị ảnh ${file.name}. Vui lòng thử tệp khác!`);
+                };
+                img.onload = () => {
+                    console.log(`Ảnh ${file.name} được tải thành công vào giao diện`);
+                };
                 imagePreview.appendChild(img);
             });
-            mangaImages.files = new FileListWrapper(validFiles); // Cập nhật input files
+
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => {
+                console.log(`Thêm tệp vào dataTransfer: ${file.name}`);
+                dataTransfer.items.add(file);
+            });
+            mangaImages.files = dataTransfer.files;
+            console.log('Input mangaImages đã được cập nhật:', mangaImages.files.length, 'tệp');
         }
 
-        // Xử lý chọn tệp
         mangaImages.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
+            console.log('Sự kiện change kích hoạt');
+            if (e.target.files.length > 0) {
+                handleFiles(e.target.files);
+            }
         });
 
-        // Xử lý kéo thả
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
@@ -357,25 +653,26 @@
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
+            console.log('Sự kiện drop kích hoạt');
+            if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
         });
 
-        // Tạo FileList từ mảng tệp
-        function FileListWrapper(files) {
-            const dataTransfer = new DataTransfer();
-            files.forEach(file => dataTransfer.items.add(file));
-            return dataTransfer.files;
-        }
-
         // Local Storage và quản lý danh sách truyện
-        const mangaList = document.getElementById('mangaList');
-        let mangas = JSON.parse(localStorage.getItem('mangas')) || [];
+        let mangas = currentUser ? users[currentUser].mangas || [] : [];
 
         function addManga(title, author, coverSrc, imageSrcs) {
-            const manga = { id: Date.now(), title, author, coverSrc, imageSrcs };
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập để lưu truyện!');
+                return;
+            }
+            const manga = { id: Date.now(), title, author, coverSrc, imageSrcs, chapters: [] };
             mangas.unshift(manga);
-            localStorage.setItem('mangas', JSON.stringify(mangas));
+            users[currentUser].mangas = mangas;
+            localStorage.setItem('users', JSON.stringify(users));
             renderManga(manga);
+            renderMangaFolders();
         }
 
         function renderManga(manga) {
@@ -396,35 +693,44 @@
             });
         }
 
-        // Tải truyện từ Local Storage khi khởi động
         mangas.forEach(renderManga);
 
-        // Chuyển đổi ảnh thành Base64
         async function fileToBase64(file) {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
+                reader.onload = () => {
+                    console.log(`Chuyển đổi thành công tệp ${file.name} thành Base64`);
+                    resolve(reader.result);
+                };
+                reader.onerror = (e) => {
+                    console.error(`Lỗi khi đọc tệp ${file.name}:`, e);
+                    reject(new Error(`Lỗi khi đọc tệp ${file.name}: ${e.message}`));
+                };
                 reader.readAsDataURL(file);
             });
         }
-                       // Tải chapter
-                       function loadChapter(chapterIndex) {
-            const comic = comics[currentComicIndex];
-            const chapter = comic.chapters[chapterIndex];
-            readerPages.innerHTML = '';
-            chapter.pages.forEach(page => {
-                const img = document.createElement('img');
-                img.src = page;
-                readerPages.appendChild(img);
-            });
-        }
 
-        // Nút "Đăng"
         document.getElementById('publishBtn').addEventListener('click', async () => {
+            console.log('Nút "Đăng" được nhấn');
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập để đăng truyện!');
+                showScreen('loginRegister');
+                return;
+            }
             const title = document.getElementById('mangaTitle').value;
             const author = document.getElementById('author').value || 'Ai Đó';
-            const coverFile = coverImage.files[0];
-            const imageFiles = mangaImages.files;
+            const coverFile = coverImage.files ? coverImage.files[0] : null;
+            const imageFiles = selectedFiles.filter(file => file && ['image/jpeg', 'image/png'].includes(file.type));
+            const chapterContent = document.getElementById('chapterContent').value;
+            const chapterTitle = document.getElementById('chapterTitle').value || `Chapter 1`;
+
+            console.log('Kiểm tra điều kiện đăng...');
+            console.log('Tên truyện:', title);
+            console.log('Bìa truyện:', coverFile ? coverFile.name : 'Không có');
+            console.log('Số ảnh truyện:', imageFiles.length);
+            console.log('Nội dung chapter:', chapterContent);
+            console.log('Tên chapter:', chapterTitle);
+
             if (!title) {
                 alert('Vui lòng nhập tên truyện!');
                 return;
@@ -437,28 +743,60 @@
                 alert('Vui lòng chọn ít nhất một ảnh truyện!');
                 return;
             }
+            if (imageFiles.length < 2) {
+                console.error('Lỗi: Chỉ có 1 ảnh được chọn khi đăng!');
+                alert('Phải chọn ít nhất 2 ảnh! Hãy chọn thêm ảnh.');
+                return;
+            }
+
             try {
+                console.log('Bắt đầu chuyển đổi ảnh thành Base64...');
                 const coverSrc = await fileToBase64(coverFile);
-                const imageSrcs = await Promise.all(Array.from(imageFiles).map(file => fileToBase64(file)));
-                addManga(title, author, coverSrc, imageSrcs);
-                alert(`Truyện "${title}" (Tác giả: ${author}) đã được đăng với ${imageFiles.length} trang!`);
+                console.log('Bìa truyện đã chuyển đổi thành công');
+
+                const validImageFiles = imageFiles.filter(file => file.size < 5 * 1024 * 1024); // Giới hạn 5MB
+                const imageSrcs = await Promise.allSettled(validImageFiles.map(async (file, index) => {
+                    try {
+                        console.log(`Chuyển đổi ảnh ${index + 1}/${validImageFiles.length}: ${file.name}`);
+                        const src = await fileToBase64(file);
+                        return src;
+                    } catch (error) {
+                        console.error(`Lỗi chuyển đổi ảnh ${file.name}:`, error);
+                        return null;
+                    }
+                }));
+
+                const successfulImageSrcs = imageSrcs
+                    .filter(result => result.status === 'fulfilled' && result.value)
+                    .map(result => result.value);
+
+                if (successfulImageSrcs.length < 2) {
+                    throw new Error('Không đủ ảnh hợp lệ sau khi chuyển đổi!');
+                }
+
+                console.log('Hoàn tất chuyển đổi ảnh. Số ảnh thành công:', successfulImageSrcs.length);
+
+                const chapter = { title: chapterTitle, content: chapterContent, images: successfulImageSrcs };
+                addManga(title, author, coverSrc, successfulImageSrcs).chapters.push(chapter);
+                alert(`Truyện "${title}" (Tác giả: ${author}) đã được đăng với ${successfulImageSrcs.length} trang và chapter "${chapterTitle}"!`);
                 showScreen('home');
-                // Reset form
+
+                selectedFiles = [];
                 coverImage.value = '';
                 document.getElementById('mangaTitle').value = '';
                 document.getElementById('author').value = '';
                 mangaImages.value = '';
+                document.getElementById('chapterContent').value = '';
+                document.getElementById('chapterTitle').value = '';
                 coverPreview.classList.add('hidden');
                 imagePreview.innerHTML = '';
                 imageCount.classList.add('hidden');
             } catch (error) {
                 console.error('Lỗi khi xử lý ảnh:', error);
-                alert('Có lỗi xảy ra khi đăng truyện. Vui lòng thử lại!');
+                alert(`Có lỗi xảy ra khi đăng truyện: ${error.message}. Vui lòng kiểm tra tệp ảnh (JPG/PNG, <5MB) và thử lại!`);
             }
         });
 
-
-        // Tìm kiếm truyện với gợi ý
         const searchInput = document.getElementById('searchInput');
         searchInput.addEventListener('input', () => {
             const query = searchInput.value.trim().toLowerCase();
@@ -469,7 +807,6 @@
             });
         });
 
-        // Điều hướng danh sách truyện
         document.getElementById('scrollLeft').addEventListener('click', () => {
             mangaList.scrollBy({ left: -200, behavior: 'smooth' });
         });
@@ -477,53 +814,72 @@
             mangaList.scrollBy({ left: 200, behavior: 'smooth' });
         });
 
-        // Màn hình đọc truyện
         let currentManga = null;
-        let currentPage = 0;
 
         function showReader(manga) {
             currentManga = manga;
-            currentPage = 0;
             document.getElementById('readerTitle').textContent = manga.title;
-            document.getElementById('readerImage').src = manga.imageSrcs[0];
-            const slider = document.getElementById('pageSlider');
-            slider.max = manga.imageSrcs.length - 1;
-            slider.value = 0;
-            document.getElementById('prevPage').disabled = true;
-            document.getElementById('nextPage').disabled = manga.imageSrcs.length <= 1;
+            const readerImages = document.getElementById('readerImages');
+            readerImages.innerHTML = '';
+            manga.imageSrcs.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'reader-image';
+                img.alt = `Trang ${index + 1}`;
+                readerImages.appendChild(img);
+            });
             showScreen('reader');
         }
 
-        document.getElementById('prevPage').addEventListener('click', () => {
-            if (currentPage > 0) {
-                currentPage--;
-                document.getElementById('readerImage').src = currentManga.imageSrcs[currentPage];
-                document.getElementById('pageSlider').value = currentPage;
-                document.getElementById('nextPage').disabled = false;
-                document.getElementById('prevPage').disabled = currentPage === 0;
-            }
-        });
+        function showChapterScreen(manga) {
+            currentManga = manga;
+            document.getElementById('chapterMangaTitle').textContent = manga.title;
+            const chapterList = document.getElementById('chapterList');
+            chapterList.innerHTML = '';
+            manga.chapters.forEach((chapter, index) => {
+                const chapterItem = document.createElement('div');
+                chapterItem.className = 'folder-card';
+                chapterItem.innerHTML = `<span>${chapter.title}</span>`;
+                chapterItem.addEventListener('click', () => {
+                    showChapterContent(chapter);
+                });
+                chapterList.appendChild(chapterItem);
+            });
+            showScreen('chapter');
+        }
 
-        document.getElementById('nextPage').addEventListener('click', () => {
-            if (currentPage < currentManga.imageSrcs.length - 1) {
-                currentPage++;
-                document.getElementById('readerImage').src = currentManga.imageSrcs[currentPage];
-                document.getElementById('pageSlider').value = currentPage;
-                document.getElementById('prevPage').disabled = false;
-                document.getElementById('nextPage').disabled = currentPage === currentManga.imageSrcs.length - 1;
-            }
-        });
-
-        document.getElementById('pageSlider').addEventListener('input', (e) => {
-            currentPage = parseInt(e.target.value);
-            document.getElementById('readerImage').src = currentManga.imageSrcs[currentPage];
-            document.getElementById('prevPage').disabled = currentPage === 0;
-            document.getElementById('nextPage').disabled = currentPage === currentManga.imageSrcs.length - 1;
-        });
+        function showChapterContent(chapter) {
+            const chapterContentDisplay = document.getElementById('chapterContentDisplay');
+            chapterContentDisplay.innerHTML = `<p>${chapter.content}</p>`;
+            const readerImages = document.createElement('div');
+            readerImages.className = 'flex flex-col items-center';
+            chapter.images.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'reader-image';
+                img.alt = `Trang ${index + 1}`;
+                readerImages.appendChild(img);
+            });
+            chapterContentDisplay.appendChild(readerImages);
+        }
 
         document.getElementById('backToHome').addEventListener('click', () => {
             showScreen('home');
         });
+
+        document.getElementById('backToHomeFromChapter').addEventListener('click', () => {
+            showScreen('home');
+        });
+
+        document.getElementById('toChapterUpload').addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập để tạo chapter!');
+                showScreen('loginRegister');
+                return;
+            }
+            showScreen('imageUpload');
+        });
+        
     </script>
 </body>
 </html>
